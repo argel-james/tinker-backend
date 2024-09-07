@@ -2,11 +2,28 @@ const firebaseService = require('../services/firebaseServices');
 
 module.exports = (bot, mqttClient) => {
   let lastMQTTMessage = '';
+  let subscribedTopics = {};
+  let lastMQTTTopic = '';
+  let chatIdsPerTopic = {};  // Store the chatId for each subscribed topic
 
-  // Handle incoming MQTT messages
+  // Handle incoming MQTT messages (set up this listener once)
   mqttClient.on('message', (topic, message) => {
     lastMQTTMessage = message.toString();
+    lastMQTTTopic = topic;
     console.log(`Received message from topic ${topic}: ${lastMQTTMessage}`);
+
+    
+
+    
+    // Store the latest message for the subscribed topic
+    subscribedTopics[topic] = lastMQTTMessage;
+
+    const chatId = chatIdsPerTopic[topic];
+
+    // Notify users about the latest message on the subscribed topic
+    if (chatId) {
+      bot.sendMessage(chatId, `The topic '${topic}' consists of: "${lastMQTTMessage}"`);
+    }
   });
 
   // Handle bot commands
@@ -24,10 +41,10 @@ module.exports = (bot, mqttClient) => {
     // Command: storemqtt
     } else if (text[0].toLowerCase() === 'storemqtt') {
       if (lastMQTTMessage) {
-        // Store the last MQTT message using the firebaseService
-        firebaseService.storeData('/mqtt/messages', { message: lastMQTTMessage })
+        // Store the last MQTT message and topic using the firebaseService
+        firebaseService.storeData('/mqtt/messages', { message: `${lastMQTTMessage} from ${lastMQTTTopic}` })
           .then(() => {
-            bot.sendMessage(chatId, `Stored last MQTT message: "${lastMQTTMessage}" in Firebase.`);
+            bot.sendMessage(chatId, `Stored last MQTT message: "${lastMQTTMessage}" from ${lastMQTTTopic} in Firebase.`);
           })
           .catch(error => {
             bot.sendMessage(chatId, `Error storing data in Firebase: ${error.message}`);
@@ -35,9 +52,8 @@ module.exports = (bot, mqttClient) => {
       } else {
         bot.sendMessage(chatId, 'No MQTT message to store.');
       }
-
-    // Command: viewmqtt
-    } else if (text[0].toLowerCase() === 'viewmqtt') {
+    }
+     else if (text[0].toLowerCase() === 'viewmqtt') {
       // Fetch data using firebaseService
       firebaseService.getData('/mqtt/messages')
         .then((data) => {
@@ -133,8 +149,58 @@ module.exports = (bot, mqttClient) => {
           bot.sendMessage(chatId, `Error deleting data: ${error.message}`);
         });
 
-    // Unknown command
-    } else {
+    // Command: publish topic/message
+    } else if (text[0].toLowerCase() === 'publish' && text.length > 2) {
+      const topicName = text[1]; // topic/name
+      const mqttMessage = text.slice(2).join(' '); // the string to publish
+      mqttClient.publish(topicName, mqttMessage, {retain: true}, () => {
+        // Simulate message reception for self-published messages
+        lastMQTTMessage = mqttMessage;
+        lastMQTTTopic = topicName;  // Update the last topic
+        subscribedTopics[topicName] = mqttMessage;  // Update the topic's message in the map
+        bot.sendMessage(chatId, `Published message: "${mqttMessage}" to the topic '${topicName}'`);
+      });
+    }
+     else if (text[0].toLowerCase() === 'subscribe' && text.length > 1) {
+      const topicName = text[1]; // topic/name
+    
+      // Subscribe to the given topic
+      mqttClient.subscribe(topicName, (err) => {
+        if (!err) {
+          bot.sendMessage(chatId, `Subscribed to topic: ${topicName}`);
+    
+          // Placeholder message until a message is received
+          subscribedTopics[topicName] = 'No messages received yet.';
+
+          chatIdsPerTopic[topicName] = chatId;  // Store the chatId for the topic
+    
+        } else {
+          bot.sendMessage(chatId, `Error subscribing to topic: ${topicName}`);
+        }
+      });
+
+    // Command: storemqtt (store the latest message in Firebase)
+    }
+
+    else if (text[0].toLowerCase() === 'showsubscribed') {
+      if (Object.keys(chatIdsPerTopic).length === 0) {
+        bot.sendMessage(chatId, 'No topics are currently subscribed.');
+      } else {
+        let messageList = 'Currently Subscribed Topics and Latest Messages:\n';
+        
+        // Loop through each topic in chatIdsPerTopic
+        Object.keys(chatIdsPerTopic).forEach((topic) => {
+          const latestMessage = subscribedTopics[topic] || 'No messages received yet';
+          messageList += `- ${topic}: "${latestMessage}"\n`;
+        });
+        
+        bot.sendMessage(chatId, messageList);
+      }
+    }
+    
+    
+    
+     else {
       bot.sendMessage(chatId, 'Unknown command. Use "addMQTT <string>", "storeMQTT", "viewMQTT", "add", "view", "update", or "delete".');
     }
   });
