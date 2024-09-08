@@ -5,11 +5,18 @@ const mqtt = require('mqtt');
 const emcutiety = require('./config/emcutiety');
 const teleContr = require('./controllers/TelegramController');
 const apiRoutes = require('./routes/apiRoutes');
+const cors = require('cors');
 
 console.log("Starting server...");
 
 const app = express();
 const port = 3000;
+
+app.use(cors({
+  origin: 'http://localhost:3001', // Allow only this origin
+  methods: 'GET,POST,PUT,DELETE',   // Allowed HTTP methods
+  allowedHeaders: 'Content-Type,Authorization' // Allowed headers
+}));
 
 const token = emcutiety.telegrambotToken;
 const bot = new TelegramBot(token, { polling: true });

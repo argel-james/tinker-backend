@@ -71,7 +71,7 @@ mqttClient.on('connect', () => {
       bot.sendMessage(chatId, `The topic '${topic}' consists of: "${lastMQTTMessage}" at ${timestamp}`);
     }
   
-    //uncomment only if u want to push
+    //uncomment only if u want to push data to firebase
     // const firebasePath = topic.replace(/\//g, '/'); // Path structure remains the same
     // // First, check if this message (with the same timestamp) is already stored in Firebase
     // firebaseService.getData(firebasePath)
