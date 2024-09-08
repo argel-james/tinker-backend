@@ -55,24 +55,46 @@ mqttClient.on('connect', () => {
 
   // Handle incoming MQTT messages (set up this listener once)
   mqttClient.on('message', (topic, message) => {
-    lastMQTTMessage = message.toString();
-    lastMQTTTopic = topic;
-    console.log(`Received message from topic ${topic}: ${lastMQTTMessage}`);
-    
-
-    
-
-    
+    const lastMQTTMessage = message.toString();
+    const lastMQTTTopic = topic;
+    const timestamp = new Date().toISOString();  // Store the current timestamp
+  
+    console.log(`Received message from topic ${topic}: ${lastMQTTMessage} at ${timestamp}`);
+  
     // Store the latest message for the subscribed topic
     subscribedTopics[topic] = lastMQTTMessage;
-
+  
     const chatId = chatIdsPerTopic[topic];
-
+  
     // Notify users about the latest message on the subscribed topic
     if (chatId) {
-      bot.sendMessage(chatId, `The topic '${topic}' consists of: "${lastMQTTMessage}"`);
+      bot.sendMessage(chatId, `The topic '${topic}' consists of: "${lastMQTTMessage}" at ${timestamp}`);
     }
+  
+    //uncomment only if u want to push
+    // const firebasePath = topic.replace(/\//g, '/'); // Path structure remains the same
+    // // First, check if this message (with the same timestamp) is already stored in Firebase
+    // firebaseService.getData(firebasePath)
+    //   .then((data) => {
+    //     // If there is no data or if the timestamp is different, store the new message and timestamp
+    //     if (!data || data.timestamp !== timestamp) {
+    //       // Store the message and timestamp in Firebase if it's new
+    //       firebaseService.storeData(firebasePath, { message: lastMQTTMessage, timestamp: timestamp })
+    //         .then(() => {
+    //           console.log(`Message from topic ${topic} stored successfully in Firebase with timestamp ${timestamp}.`);
+    //         })
+    //         .catch((error) => {
+    //           console.error(`Error storing message from topic ${topic} in Firebase: ${error}`);
+    //         });
+    //     } else {
+    //       console.log(`Message from topic ${topic} is already stored with the same timestamp.`);
+    //     }
+    //   })
+    //   .catch((error) => {
+    //     console.error(`Error checking message from topic ${topic} in Firebase: ${error}`);
+    //   });
   });
+
 
   // Handle bot commands
   bot.on('message', (msg) => {

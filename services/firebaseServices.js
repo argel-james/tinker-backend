@@ -24,9 +24,20 @@ const deleteData = (path) => {
   return database.ref(path).remove();
 };
 
+const getLatestMessage = async (busStopCode) => {
+  const data = await getData(`/bus/blue/${busStopCode}`);
+  if (data) {
+    const latestMessageKey = Object.keys(data).pop();
+    return data[latestMessageKey].message;
+  } else {
+    return "No data";
+  }
+};
+
 module.exports = {
   storeData,
   getData,
   updateData,
   deleteData,
+  getLatestMessage
 };
