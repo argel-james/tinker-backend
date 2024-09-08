@@ -2,15 +2,63 @@ const firebaseService = require('../services/firebaseServices');
 
 module.exports = (bot, mqttClient) => {
   let lastMQTTMessage = '';
-  let subscribedTopics = {};
+  let subscribedTopics = {
+    '/bus/blue/opphall11': '-',
+    '/bus/blue/nanyangheights': '-',
+    '/bus/blue/hall6': '-',
+    '/bus/blue/opphall4': '-',
+    '/bus/blue/oppyunnangarden': '-',
+    '/bus/blue/oppspms': '-',
+    '/bus/blue/oppwkwsci': '-',
+    '/bus/blue/oppcee': '-',
+    '/bus/blue/nieblk2': '-',
+    '/bus/blue/opphall16': '-',
+    '/bus/blue/opphall14': '-',
+    '/bus/blue/oppnycreshalls': '-',
+    'sniffcount': '-'
+  };
   let lastMQTTTopic = '';
-  let chatIdsPerTopic = {};  // Store the chatId for each subscribed topic
+  // Prepopulate chatIdsPerTopic
+let chatIdsPerTopic = {
+  '/bus/blue/opphall11': 0,
+  '/bus/blue/nanyangheights': 0,
+  '/bus/blue/hall6': 0,
+  '/bus/blue/opphall4': 0,
+  '/bus/blue/oppyunnangarden': 0,
+  '/bus/blue/oppspms': 0,
+  '/bus/blue/oppwkwsci': 0,
+  '/bus/blue/oppcee': 0,
+  '/bus/blue/nieblk2': 0,
+  '/bus/blue/opphall16': 0,
+  '/bus/blue/opphall14': 0,
+  '/bus/blue/oppnycreshalls': 0,
+  'sniffcount': 0
+};
+  // Store the chatId for each subscribed topic
+
+
+  // Subscribe to all predefined topics on MQTT client connection
+mqttClient.on('connect', () => {
+  Object.keys(subscribedTopics).forEach(topic => {
+    mqttClient.subscribe(topic, (err) => {
+      if (!err) {
+        console.log(`Subscribed to topic: ${topic}`);
+
+        subscribedTopics[topic] = `Subscribed to ${topic}, waiting for data...`;
+      } else {
+        console.log(`Failed to subscribe to topic: ${topic}`);
+      }
+    });
+  });
+});
+
 
   // Handle incoming MQTT messages (set up this listener once)
   mqttClient.on('message', (topic, message) => {
     lastMQTTMessage = message.toString();
     lastMQTTTopic = topic;
     console.log(`Received message from topic ${topic}: ${lastMQTTMessage}`);
+    
 
     
 
@@ -30,6 +78,16 @@ module.exports = (bot, mqttClient) => {
   bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text.split(' ');
+
+    if (msg.text === '/start') {
+      // Loop through all topics and assign the chatId to each topic
+      Object.keys(chatIdsPerTopic).forEach(topic => {
+        chatIdsPerTopic[topic] = chatId;
+      });
+  
+      // Send a welcome message and notify the user
+      bot.sendMessage(chatId, 'Welcome to the bot! You have been subscribed to all bus topics.');
+    }
 
     // Command: addmqtt
     if (text[0].toLowerCase() === 'addmqtt' && text.length > 1) {
@@ -161,6 +219,19 @@ module.exports = (bot, mqttClient) => {
         bot.sendMessage(chatId, `Published message: "${mqttMessage}" to the topic '${topicName}'`);
       });
     }
+
+    else if (text[0].toLowerCase() === 'deletemqtt' && text.length > 1) {
+      const topicName = text[1]; // topic name to delete
+    
+      // Publish an empty message with retain flag set to true to clear the retained message
+      mqttClient.publish(topicName, '', { retain: true }, () => {
+        // Clear the topic from the subscribedTopics
+        subscribedTopics[topicName] = '-';
+        bot.sendMessage(chatId, `Retained message for topic '${topicName}' has been deleted.`);
+      });
+    }
+
+
      else if (text[0].toLowerCase() === 'subscribe' && text.length > 1) {
       const topicName = text[1]; // topic/name
     
@@ -187,6 +258,7 @@ module.exports = (bot, mqttClient) => {
         bot.sendMessage(chatId, 'No topics are currently subscribed.');
       } else {
         let messageList = 'Currently Subscribed Topics and Latest Messages:\n';
+        console.log(chatIdsPerTopic);
         
         // Loop through each topic in chatIdsPerTopic
         Object.keys(chatIdsPerTopic).forEach((topic) => {
@@ -197,11 +269,108 @@ module.exports = (bot, mqttClient) => {
         bot.sendMessage(chatId, messageList);
       }
     }
+
+
+    else if (text[0].toLowerCase() === 'options') {
+      // Send a message with a custom keyboard containing "YES" and "NO" buttons
+      bot.sendMessage(chatId, 'Choose an option:', {
+        reply_markup: {
+          keyboard: [
+            ['YES', 'NO'] // Custom keyboard with two buttons
+          ],
+          resize_keyboard: true, // Auto-resize keyboard to fit window
+          one_time_keyboard: true // Remove the keyboard after one use
+        }
+      });
+    }
+
+    else if (text[0].toLowerCase() === 'sniffkenneth') {
+      bot.sendMessage(chatId, ` Kenneth sniffing ${subscribedTopics['sniffcount']}`, 
+  );
+    }
     
     
     
      else {
-      bot.sendMessage(chatId, 'Unknown command. Use "addMQTT <string>", "storeMQTT", "viewMQTT", "add", "view", "update", or "delete".');
+      // bot.sendMessage(chatId, 'Unknown command. Use "addMQTT <string>", "storeMQTT", "viewMQTT", "add", "view", "update", or "delete".');
     }
   });
+
+
+  bot.onText(/\/options/, (msg) => {
+    const chatId = msg.chat.id;
+  
+    // Send a message with inline buttons for the four options
+    bot.sendMessage(chatId, 'Choose an option:', {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: 'Bus Stops', callback_data: 'bus_stops' },
+            { text: 'Study Areas', callback_data: 'study_areas' },
+          ],
+          [
+            { text: 'Canteens', callback_data: 'canteens' },
+            { text: 'All', callback_data: 'all' },
+          ]
+        ]
+      }
+    });
+  });
+
+  bot.on('callback_query', function (callbackQuery) {
+    const message = callbackQuery.message;
+    const data = callbackQuery.data;
+    const chatId = message.chat.id;
+    const messageId = message.message_id;
+
+    // Handle when user selects Bus Stops
+    if (data === 'bus_stops') {
+      // Delete the original message (Choose an option)
+      bot.deleteMessage(chatId, messageId).then(() => {
+        // Send a new message asking for bus types
+        bot.sendMessage(chatId, 'Choose a bus type:', {
+          reply_markup: {
+            inline_keyboard: [
+              [
+                { text: 'Blue', callback_data: 'bluebus' },
+                { text: 'Red', callback_data: 'redbus' },
+              ],
+              [
+                { text: 'Green', callback_data: 'greenbus' },
+                { text: 'Brown', callback_data: 'brownbus' },
+              ]
+            ]
+          }
+        });
+      });
+    }
+
+    // Handle when user selects Blue Bus
+    else if (data === 'bluebus') {
+      // Delete the bus type selection message
+      bot.deleteMessage(chatId, messageId).then(() => {
+        // Send the final message
+        bot.sendMessage(chatId, `LIST OF NTU BUSES 🚍🚍🚍\n\nAs promised, we will be changing our Mala Bowl ingredients weekly so you guys won’t be bored 🤪\n\nFor this week, our Mala Bowl 🌶️🌶️ will be:\n\nOpp Hall 11  ${subscribedTopics['/bus/blue/opphall11']}🥔\nNanyang Heights ${subscribedTopics['/bus/blue/nanyangheights']}🍄\nHall 6 ${subscribedTopics['/bus/blue/hall6']}🥦\nOpp Hall 4 ${subscribedTopics['/bus/blue/opphall4']}🥬\nOpp Yunnan Garden ${subscribedTopics['/bus/blue/oppyunnangarden']}🌭\nOpp SPMS ${subscribedTopics['/bus/blue/oppspms']}🌭\nOpp WKWSCI ${subscribedTopics['/bus/blue/oppwkwsci']}🍖\nOpp CEE ${subscribedTopics['/bus/blue/oppcee']}🧀\nNIE Blk 2 ${subscribedTopics['/bus/blue/nieblk2']}🌱\nOpp Hall 16 ${subscribedTopics['/bus/blue/opphall16']}🥚\nOpp Hall 14 ${subscribedTopics['/bus/blue/opphall14']}🍡\nOpp NY Cres Halls ${subscribedTopics['/bus/blue/oppnycreshalls']}\n\n‼️ *SPECIAL*: Soft Fluffy Scrambled Eggs 🥚🥚🥚 placed on top of your MALA`, {
+          parse_mode: 'Markdown'
+        });
+      });
+    }
+
+    // Handle other options like Study Areas, Canteens, All
+    else if (data === 'study_areas') {
+      bot.deleteMessage(chatId, messageId).then(() => {
+        bot.sendMessage(chatId, 'You selected: Study Areas 📚');
+      });
+    } else if (data === 'canteens') {
+      bot.deleteMessage(chatId, messageId).then(() => {
+        bot.sendMessage(chatId, 'You selected: Canteens 🍽️');
+      });
+    } else if (data === 'all') {
+      bot.deleteMessage(chatId, messageId).then(() => {
+        bot.sendMessage(chatId, 'You selected: All Options 🌍');
+      });
+    }
+  });
+  
+  
 };
