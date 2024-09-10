@@ -72,27 +72,27 @@ mqttClient.on('connect', () => {
     }
   
     //uncomment only if u want to push data to firebase
-    // const firebasePath = topic.replace(/\//g, '/'); // Path structure remains the same
-    // // First, check if this message (with the same timestamp) is already stored in Firebase
-    // firebaseService.getData(firebasePath)
-    //   .then((data) => {
-    //     // If there is no data or if the timestamp is different, store the new message and timestamp
-    //     if (!data || data.timestamp !== timestamp) {
-    //       // Store the message and timestamp in Firebase if it's new
-    //       firebaseService.storeData(firebasePath, { message: lastMQTTMessage, timestamp: timestamp })
-    //         .then(() => {
-    //           console.log(`Message from topic ${topic} stored successfully in Firebase with timestamp ${timestamp}.`);
-    //         })
-    //         .catch((error) => {
-    //           console.error(`Error storing message from topic ${topic} in Firebase: ${error}`);
-    //         });
-    //     } else {
-    //       console.log(`Message from topic ${topic} is already stored with the same timestamp.`);
-    //     }
-    //   })
-    //   .catch((error) => {
-    //     console.error(`Error checking message from topic ${topic} in Firebase: ${error}`);
-    //   });
+    const firebasePath = topic.replace(/\//g, '/'); // Path structure remains the same
+    // First, check if this message (with the same timestamp) is already stored in Firebase
+    firebaseService.getData(firebasePath)
+      .then((data) => {
+        // If there is no data or if the timestamp is different, store the new message and timestamp
+        if (!data || data.timestamp !== timestamp) {
+          // Store the message and timestamp in Firebase if it's new
+          firebaseService.storeData(firebasePath, { message: lastMQTTMessage, timestamp: timestamp })
+            .then(() => {
+              console.log(`Message from topic ${topic} stored successfully in Firebase with timestamp ${timestamp}.`);
+            })
+            .catch((error) => {
+              console.error(`Error storing message from topic ${topic} in Firebase: ${error}`);
+            });
+        } else {
+          console.log(`Message from topic ${topic} is already stored with the same timestamp.`);
+        }
+      })
+      .catch((error) => {
+        console.error(`Error checking message from topic ${topic} in Firebase: ${error}`);
+      });
   });
 
 
@@ -369,14 +369,45 @@ mqttClient.on('connect', () => {
 
     // Handle when user selects Blue Bus
     else if (data === 'bluebus') {
+      // Helper function to return the appropriate icon based on the value
+      const getIconForValue = (value) => {
+        if (isNaN(value) || value === undefined || value === null) {
+          return '💋'; // If value is NaN or doesn't exist, return 💋
+        }
+        const intValue = parseInt(value, 10);
+        if (intValue >= 0 && intValue <= 7) {
+          return '🟢'; // Value between 0 and 7
+        } else if (intValue >= 8 && intValue <= 14) {
+          return '🟠'; // Value between 8 and 14
+        } else if (intValue >= 15) {
+          return '🔴'; // Value 15 or greater
+        }
+      };
+    
       // Delete the bus type selection message
       bot.deleteMessage(chatId, messageId).then(() => {
-        // Send the final message
-        bot.sendMessage(chatId, `LIST OF NTU BUSES 🚍🚍🚍\n\nAs promised, we will be changing our Mala Bowl ingredients weekly so you guys won’t be bored 🤪\n\nFor this week, our Mala Bowl 🌶️🌶️ will be:\n\nOpp Hall 11  ${subscribedTopics['/bus/blue/opphall11']}🥔\nNanyang Heights ${subscribedTopics['/bus/blue/nanyangheights']}🍄\nHall 6 ${subscribedTopics['/bus/blue/hall6']}🥦\nOpp Hall 4 ${subscribedTopics['/bus/blue/opphall4']}🥬\nOpp Yunnan Garden ${subscribedTopics['/bus/blue/oppyunnangarden']}🌭\nOpp SPMS ${subscribedTopics['/bus/blue/oppspms']}🌭\nOpp WKWSCI ${subscribedTopics['/bus/blue/oppwkwsci']}🍖\nOpp CEE ${subscribedTopics['/bus/blue/oppcee']}🧀\nNIE Blk 2 ${subscribedTopics['/bus/blue/nieblk2']}🌱\nOpp Hall 16 ${subscribedTopics['/bus/blue/opphall16']}🥚\nOpp Hall 14 ${subscribedTopics['/bus/blue/opphall14']}🍡\nOpp NY Cres Halls ${subscribedTopics['/bus/blue/oppnycreshalls']}\n\n‼️ *SPECIAL*: Soft Fluffy Scrambled Eggs 🥚🥚🥚 placed on top of your MALA`, {
-          parse_mode: 'Markdown'
-        });
+        // Send the final message with the actual values and appropriate icons for each stop
+        bot.sendMessage(
+          chatId,
+          `LIST OF NTU BUSES 🚍🚍🚍\n\nAs promised, we will be changing our Mala Bowl ingredients weekly so you guys won’t be bored 🤪\n\nFor this week, our Mala Bowl 🌶️🌶️ will be:\n\n` +
+            `Opp Hall 11 ${subscribedTopics['/bus/blue/opphall11']} ${getIconForValue(subscribedTopics['/bus/blue/opphall11'])}\n` +
+            `Nanyang Heights ${subscribedTopics['/bus/blue/nanyangheights']} ${getIconForValue(subscribedTopics['/bus/blue/nanyangheights'])}\n` +
+            `Hall 6 ${subscribedTopics['/bus/blue/hall6']} ${getIconForValue(subscribedTopics['/bus/blue/hall6'])}\n` +
+            `Opp Hall 4 ${subscribedTopics['/bus/blue/opphall4']} ${getIconForValue(subscribedTopics['/bus/blue/opphall4'])}\n` +
+            `Opp Yunnan Garden ${subscribedTopics['/bus/blue/oppyunnangarden']} ${getIconForValue(subscribedTopics['/bus/blue/oppyunnangarden'])}\n` +
+            `Opp SPMS ${subscribedTopics['/bus/blue/oppspms']} ${getIconForValue(subscribedTopics['/bus/blue/oppspms'])}\n` +
+            `Opp WKWSCI ${subscribedTopics['/bus/blue/oppwkwsci']} ${getIconForValue(subscribedTopics['/bus/blue/oppwkwsci'])}\n` +
+            `Opp CEE ${subscribedTopics['/bus/blue/oppcee']} ${getIconForValue(subscribedTopics['/bus/blue/oppcee'])}\n` +
+            `NIE Blk 2 ${subscribedTopics['/bus/blue/nieblk2']} ${getIconForValue(subscribedTopics['/bus/blue/nieblk2'])}\n` +
+            `Opp Hall 16 ${subscribedTopics['/bus/blue/opphall16']} ${getIconForValue(subscribedTopics['/bus/blue/opphall16'])}\n` +
+            `Opp Hall 14 ${subscribedTopics['/bus/blue/opphall14']} ${getIconForValue(subscribedTopics['/bus/blue/opphall14'])}\n` +
+            `Opp NY Cres Halls ${subscribedTopics['/bus/blue/oppnycreshalls']} ${getIconForValue(subscribedTopics['/bus/blue/oppnycreshalls'])}\n\n` +
+            `‼️ *SPECIAL*: Soft Fluffy Scrambled Eggs 🥚🥚🥚 placed on top of your MALA`, {
+            parse_mode: 'Markdown'
+          });
       });
     }
+    
 
     // Handle other options like Study Areas, Canteens, All
     else if (data === 'study_areas') {
