@@ -1,0 +1,21 @@
+[debug] [2024-09-05T19:30:59.037Z] ----------------------------------------------------------------------
+[debug] [2024-09-05T19:30:59.039Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\Arfel\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js init
+[debug] [2024-09-05T19:30:59.039Z] CLI Version:   13.16.0
+[debug] [2024-09-05T19:30:59.039Z] Platform:      win32
+[debug] [2024-09-05T19:30:59.040Z] Node Version:  v20.17.0
+[debug] [2024-09-05T19:30:59.040Z] Time:          Fri Sep 06 2024 03:30:59 GMT+0800 (Singapore Standard Time)
+[debug] [2024-09-05T19:30:59.040Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2024-09-05T19:30:59.045Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2024-09-05T19:30:59.045Z] > authorizing via signed-in user (twertyrewq@gmail.com)
+[info] 
+     ######## #### ########  ######## ########     ###     ######  ########
+     ##        ##  ##     ## ##       ##     ##  ##   ##  ##       ##
+     ######    ##  ########  ######   ########  #########  ######  ######
+     ##        ##  ##    ##  ##       ##     ## ##     ##       ## ##
+     ##       #### ##     ## ######## ########  ##     ##  ######  ########
+
+You're about to initialize a Firebase project in this directory:
+
+  C:\Users\Arfel\Desktop\codes\tinkerProj\fullstack-tinker
+
